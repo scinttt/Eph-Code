@@ -2,7 +2,8 @@ export namespace Truncate {
     const MAX_LINES = 2000
     const MAX_BYTES = 50 * 1024
 
-    export function output(text: string): string{
+    // truncate the long tool output based on Lines and Bytes limit
+    export function tool_output(text: string): string{
         const lines = text.split("\n")
         if(lines.length > MAX_LINES){
             text = lines.slice(0, MAX_LINES).join("\n")
