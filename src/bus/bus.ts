@@ -1,1 +1,2 @@
-export namespace Bus {}
+export namespace Bus {
+}
