@@ -2,3 +2,12 @@ CLAUDE.md
 docs/
 TBD.md
 NOW.md
+.DS_Store
+.git_backup/
+.now_md.cooldown
+.now_md.lock
+.project_memory.cooldown
+node_modules/
+dist/
+bun.lock
+*.tsbuildinfo
