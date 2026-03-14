@@ -1,0 +1,25 @@
+{
+  "name": "eph-code",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "eph-code": "src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "2.0.65",
+    "@ai-sdk/google": "2.0.54",
+    "@ai-sdk/openai-compatible": "^2.0.35",
+    "ai": "5.0.124",
+    "zod": "4.1.8"
+  }
+}
