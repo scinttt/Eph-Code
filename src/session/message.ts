@@ -25,7 +25,7 @@ export namespace Message {
     /** A part can be any of the three types */
     export type Part = TextPart | ReasoningPart | ToolPart
 
-    /** Used to construct the agent response inlcuding all LLM resposne parts */
+    /** Used to construct the agent response including all LLM response parts */
     export type Info = {
         id: string
         sessionId: string
