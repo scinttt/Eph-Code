@@ -3,7 +3,7 @@ import * as path from "path"
 
 export namespace SystemPrompt {
     export async function build(): Promise<string[]> {
-        const promptPath = path.join(import.meta.dir, "../agent/prompt/build.txt")
+        const promptPath = path.join(import.meta.dir, "../agent/prompt/build.md")
         const basePrompt = await fs.readFile(promptPath, "utf-8")
         const envInfo = [
             `Working directory: ${process.cwd()}`,
