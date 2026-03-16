@@ -10,8 +10,7 @@
     "dev": "bun run src/index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "zod-to-json-schema": "3.24.5"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
