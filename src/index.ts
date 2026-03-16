@@ -1,5 +1,16 @@
 #!/usr/bin/env bun
 
+import * as readline from "readline"
+import { Session } from "./session/session"
+import { SessionPrompt } from "./session/prompt"
+import { SessionProcessor } from "./session/processor"
+import { Message } from "./session/message"
+import { Identifier } from "./util/id"
+import { Bus } from "./bus/bus"
+import { ToolRegistry } from "./tool/registry"
+import { ReadTool } from "./tool/read"
+import { InvalidTool } from "./tool/invalid"
+
 if (process.argv.includes("--help")) {
   console.log("eph-code - a coding agent CLI tool")
   console.log()
@@ -10,4 +21,44 @@ if (process.argv.includes("--help")) {
   process.exit(0)
 }
 
-console.log("eph-code ready")
+// Register tools
+ToolRegistry.register(ReadTool)
+ToolRegistry.register(InvalidTool)
+
+// Subscribe to text deltas for real-time printing
+Bus.subscribe(SessionProcessor.TextDelta, (payload) => {
+  process.stdout.write(payload.text)
+})
+
+// Create session and start CLI
+const session = Session.create()
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+
+function prompt() {
+  rl.question("eph-code> ", async (input) => {
+    const trimmed = input.trim()
+    if(!trimmed || trimmed === "exit"){
+      rl.close()
+      process.exit(0)
+    }
+
+    // Create user message and add to session
+    const userMsg: Message.Info = {
+      id: Identifier.ascending("msg"),
+      sessionId: session.id,
+      role: "user",
+      parts: [{ type: "text", text: trimmed }],
+      time: { created: Date.now() },
+      metadata: {},
+    }
+    Session.addMessage(session.id, userMsg)
+
+    // Run agent loop
+    await SessionPrompt.loop(session.id)
+    console.log()
+
+    prompt()
+  })
+}
+
+prompt()
