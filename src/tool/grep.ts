@@ -1,9 +1,10 @@
 import { z } from "zod"
 import { Tool } from "./tool"
 import { execSync } from "child_process"
+import DESCRIPTION from "./grep.md"
 
 export const GrepTool = Tool.define("grep", {
-    description: "Search file contents using regex. Uses ripgrep if available, falls back to grep.",
+    description: DESCRIPTION,
     parameters: z.object({
         pattern: z.string().describe("Regex pattern to search for"),
         path: z.string().optional().describe("Directory to search in, defaults to cwd"),

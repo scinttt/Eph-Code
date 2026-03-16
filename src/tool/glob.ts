@@ -1,9 +1,10 @@
 import { z } from "zod"
 import { Tool } from "./tool"
 import { glob } from "glob"
+import DESCRIPTION from "./glob.md"
 
 export const GlobTool = Tool.define("glob", {
-    description: "Find files by glob pattern. Respects .gitignore. Returns matching file paths.",
+    description: DESCRIPTION,
     parameters: z.object({
       pattern: z.string().describe("Glob pattern to match files (e.g. '**/*.ts')"),
       path: z.string().optional().describe("Directory to search in, defaults to cwd"),

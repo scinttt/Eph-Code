@@ -3,10 +3,11 @@ import { Tool } from "./tool"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { createTwoFilesPatch } from "diff"
+import DESCRIPTION from "./edit.md"
 
 /** EditTool: search-replace editing with multiple fallback matching strategies */
 export const EditTool = Tool.define("edit", {
-  description: "Replace specific text in a file. oldString must match exactly (or closely). Use replaceAll to replace all occurrences.",
+  description: DESCRIPTION,
   parameters: z.object({
     filePath: z.string().describe("Absolute path to the file to modify"),
     oldString: z.string().describe("The text to replace"),

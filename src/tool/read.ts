@@ -1,10 +1,11 @@
 import { z } from "zod"
 import { Tool } from "./tool"
 import * as fs from "fs/promises"
-  
+import DESCRIPTION from "./read.md"
+
 /** Read a file with line numbers or list a directory. Supports offset/limit for partial reads. */
 export const ReadTool = Tool.define("read",{
-    description: "Read a file or list a directory. Returns file content with line numbers, or directory listing.",
+    description: DESCRIPTION,
     parameters: z.object({
         filePath: z.string().describe("Absolute path to the file or directory"),
         offset: z.number().optional().describe("Line number to start reading from (1-indexed)"),
