@@ -10,6 +10,7 @@ import { BusEvent } from "../bus/event"
 import { ToolRegistry } from "../tool/registry"
 import { SessionRetry } from "./retry"
 import { SessionCompaction } from "./compaction"
+import { Tool } from "../tool/tool"
 
 const MAX_STEPS = 20
 const MAX_RETRIES = 3
@@ -98,6 +99,9 @@ export namespace SessionProcessor {
                             state: "pending",
                         })
                         break
+                    case "error":
+                        console.error(`\n[stream error] ${event.error}`)
+                        break
                 }
             }
             
@@ -130,7 +134,16 @@ export namespace SessionProcessor {
                 if (!tool) continue
 
                 try{
-                    const result = await tool.execute(call.input, {} as any)
+                    const ctx: Tool.Context = {
+                        sessionId,
+                        messageId: assistantMsg.id,
+                        agent: "build",
+                        abort: new AbortController().signal,
+                        callId: call.toolCallId,
+                        messages: Session.getMessages(sessionId) ?? [],
+                        ask: async () => "allow" as const
+                    }
+                    const result = await tool.execute(call.input, ctx)
                     toolPart.state = "completed"
                     toolPart.result = result.output
                 } catch (error) {

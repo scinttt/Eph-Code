@@ -8,6 +8,7 @@ export namespace LLM {
         model?: string
         system: string[]
         messages: any[]
+        sessionId?: string
     }
 
     /** Start a single-round streaming LLM call (no auto tool execution) */
