@@ -21,10 +21,21 @@ export namespace Bus {
     ) {
         const list = subscriptions.get(def.type) ?? []
         const all = subscriptions.get("*") ?? []
-        for (const callback of all)
-            callback({type: def.type, payload})
-        for (const callback of list)
-            callback(payload)
+        for (const callback of all){
+            try { 
+                callback({type: def.type, payload}) 
+            } catch (e) { 
+                console.error("[Bus] subscriber error:", e) 
+            }
+        }
+            
+        for (const callback of list){
+            try { 
+                callback(payload) 
+            } catch (e) { 
+                console.error("[Bus] subscriber error:", e) 
+            }
+        }
     }
 
     /** Hook a callback to all events regardless of type */

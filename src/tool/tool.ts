@@ -37,7 +37,16 @@ export namespace Tool {
             description: opts.description,
             parameters: opts.parameters,
             execute: async(args, ctx) => {
-                const parsed = opts.parameters.parse(args)
+                let parsed
+                try{
+                    parsed = opts.parameters.parse(args)
+                }catch (error) {
+                    return { 
+                        title: name, 
+                        output: `Invalid parameters: ${error instanceof Error ? error.message :String(error)}. Please fix and try again.` 
+                    }
+                }
+                
                 const result = await opts.execute(parsed, ctx)
                 result.output = Truncate.tool_output(result.output)
                 return result

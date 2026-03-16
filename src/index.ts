@@ -61,8 +61,13 @@ function prompt() {
     }
     Session.addMessage(session.id, userMsg)
 
-    // Run agent loop
-    await SessionPrompt.loop(session.id)
+    try{
+      // Run agent loop
+      await SessionPrompt.loop(session.id)
+    } catch (error) {
+      console.error(`\nError: ${error instanceof Error ? error.message : String(error)}`)
+    }
+    
     console.log()
 
     prompt()
