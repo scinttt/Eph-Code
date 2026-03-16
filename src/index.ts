@@ -9,6 +9,10 @@ import { Identifier } from "./util/id"
 import { Bus } from "./bus/bus"
 import { ToolRegistry } from "./tool/registry"
 import { ReadTool } from "./tool/read"
+import { WriteTool } from "./tool/write"
+import { EditTool } from "./tool/edit"
+import { GlobTool } from "./tool/glob"
+import { GrepTool } from "./tool/grep"
 import { InvalidTool } from "./tool/invalid"
 
 if (process.argv.includes("--help")) {
@@ -23,6 +27,10 @@ if (process.argv.includes("--help")) {
 
 // Register tools
 ToolRegistry.register(ReadTool)
+ToolRegistry.register(WriteTool)
+ToolRegistry.register(EditTool)
+ToolRegistry.register(GlobTool)
+ToolRegistry.register(GrepTool)
 ToolRegistry.register(InvalidTool)
 
 // Subscribe to text deltas for real-time printing

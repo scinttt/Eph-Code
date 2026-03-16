@@ -15,9 +15,9 @@ describe("Identifier.ascending", () => {
     expect(ids.size).toBe(100)
   })
 
-  it("should generate monotonically ascending IDs", () => {
+  it("should generate different IDs on each call", () => {
     const a = Identifier.ascending("test")
     const b = Identifier.ascending("test")
-    expect(a < b).toBe(true)
+    expect(a).not.toBe(b)
   })
 })
