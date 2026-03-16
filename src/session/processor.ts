@@ -9,6 +9,7 @@ import { Bus } from "../bus/bus"
 import { BusEvent } from "../bus/event"
 import { ToolRegistry } from "../tool/registry"
 import { SessionRetry } from "./retry"
+import { SessionCompaction } from "./compaction"
 
 const MAX_STEPS = 20
 const MAX_RETRIES = 3
@@ -20,7 +21,7 @@ export namespace SessionProcessor {
     }))
 
     /** Process conversation: loop LLM → tools until done, doom loop, or max steps */
-    export async function process(sessionId: string, model?: string): Promise<"continue" | "stop">{
+    export async function process(sessionId: string, model?: string): Promise<"continue" | "compact" | "stop">{
         const system = await SystemPrompt.build()
 
         for(let step = 0; step < MAX_STEPS; step++){
@@ -140,6 +141,11 @@ export namespace SessionProcessor {
 
             assistantMsg.time.completed = Date.now()
             Session.addMessage(sessionId, assistantMsg)
+
+            /** Check if context is overflowing after tool execution */
+            if (SessionCompaction.isOverflow(sessionId)) {
+                return "compact"
+            }
         }
         
         console.error(`\n[max steps ${MAX_STEPS} reached] terminating agent loop`)
