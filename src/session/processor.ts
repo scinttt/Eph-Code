@@ -11,6 +11,7 @@ import { ToolRegistry } from "../tool/registry"
 import { SessionRetry } from "./retry"
 import { SessionCompaction } from "./compaction"
 import { Tool } from "../tool/tool"
+import { Permission } from "../permission/permission"
 
 const MAX_STEPS = 20
 const MAX_RETRIES = 3
@@ -140,6 +141,14 @@ export namespace SessionProcessor {
 
                 if(!toolPart) continue
 
+                /** Permission gate: check before execution, deny → error and skip */
+                const permission = await Permission.requestPermission(call.toolName, call.input)
+                if (permission === "deny") {
+                    toolPart.state = "error"
+                    toolPart.error = `Permission denied: tool "${call.toolName}" was not allowed by user`
+                    continue
+                }
+
                 toolPart.state = "running"
                 const tool = ToolRegistry.get(call.toolName) ?? ToolRegistry.get("invalid")
                 
@@ -153,7 +162,7 @@ export namespace SessionProcessor {
                         abort: new AbortController().signal,
                         callId: call.toolCallId,
                         messages: Session.getMessages(sessionId) ?? [],
-                        ask: async () => "allow" as const
+                        ask: () => Permission.requestPermission(call.toolName, call.input)
                     }
                     const result = await tool.execute(call.input, ctx)
                     toolPart.state = "completed"
