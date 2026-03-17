@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { Tool } from "./tool"
-import { execSync } from "child_process"
+import { execFileSync } from "child_process"
 import DESCRIPTION from "./grep.md"
 
 export const GrepTool = Tool.define("grep", {
@@ -12,32 +12,27 @@ export const GrepTool = Tool.define("grep", {
     }),
     execute: async (args, ctx) => {
         const cwd = args.path ?? process.cwd()
-        // Check if ripgrep exists
+
+        // Build args array to avoid shell injection
         const hasRg = (() => {
-            try { 
-                execSync("which rg", { stdio: "ignore" }); 
-                return true 
-            } catch { 
-                return false 
-            }
+            try { execFileSync("which", ["rg"], { stdio: "ignore" }); return true } catch { return false }
         })()
 
-        // Construct the commands for grep
-        let cmd: string
+        let bin: string
+        let cmdArgs: string[]
         if (hasRg) {
-            cmd = `rg -n --no-heading "${args.pattern.replace(/"/g, '\\"')}"`
-            if (args.include) 
-                cmd += ` -g "${args.include}"`
-            cmd += ` "${cwd}"`
+            bin = "rg"
+            cmdArgs = ["-n", "--no-heading", args.pattern]
+            if (args.include) cmdArgs.push("-g", args.include)
+            cmdArgs.push(cwd)
         } else {
-            cmd = `grep -rnH "${args.pattern.replace(/"/g, '\\"')}" "${cwd}"`
-            if (args.include) 
-                cmd += ` --include="${args.include}"`
+            bin = "grep"
+            cmdArgs = ["-rnH", args.pattern, cwd]
+            if (args.include) cmdArgs.push(`--include=${args.include}`)
         }
 
         try {
-            // Output type: string; Maxsize: 1MB
-            const output = execSync(cmd, { encoding: "utf-8", maxBuffer: 1024 * 1024 })
+            const output = execFileSync(bin, cmdArgs, { encoding: "utf-8", maxBuffer: 1024 * 1024 })
             if (!output.trim()) return { title: args.pattern, output: "No matches found." }
             return { title: args.pattern, output: output.trim() }
         } catch {
