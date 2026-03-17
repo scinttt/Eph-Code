@@ -14,6 +14,7 @@ import { EditTool } from "./tool/edit"
 import { GlobTool } from "./tool/glob"
 import { GrepTool } from "./tool/grep"
 import { InvalidTool } from "./tool/invalid"
+import { Permission } from "./permission/permission"
 
 if (process.argv.includes("--help")) {
   console.log("eph-code - a coding agent CLI tool")
@@ -41,6 +42,18 @@ Bus.subscribe(SessionProcessor.TextDelta, (payload) => {
 // Create session and start CLI
 const session = Session.create()
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+
+// Register permission ask handler — prompts user via readline for dangerous tools
+Permission.setAskHandler(async (toolName, args) => {
+  return new Promise<boolean>((resolve) => {
+    const preview = typeof args === "object" && args !== null
+      ? JSON.stringify(args, null, 2).slice(0, 200)
+      : String(args)
+    rl.question(`\n⚠ Allow "${toolName}"?\n${preview}\n[y/n] `, (answer) => {
+      resolve(answer.trim().toLowerCase().startsWith("y"))
+    })
+  })
+})
 
 function prompt() {
   rl.question("eph-code> ", async (input) => {
