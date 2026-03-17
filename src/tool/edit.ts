@@ -28,16 +28,20 @@ export const EditTool = Tool.define("edit", {
       return { title: args.filePath, output: `File created successfully.\n\n${trimDiff(diff)}` }
     }
 
-    const content = await fs.readFile(args.filePath, "utf-8")
-    const newContent = replace(content, args.oldString, args.newString, args.replaceAll)
-    await fs.writeFile(args.filePath, newContent)
+    try {
+      const content = await fs.readFile(args.filePath, "utf-8")
+      const newContent = replace(content, args.oldString, args.newString, args.replaceAll)
+      await fs.writeFile(args.filePath, newContent)
 
-    const diff = createTwoFilesPatch(
-      args.filePath, args.filePath,
-      normalizeLineEndings(content),
-      normalizeLineEndings(newContent),
-    )
-    return { title: args.filePath, output: `Edit applied successfully.\n\n${trimDiff(diff)}` }
+      const diff = createTwoFilesPatch(
+        args.filePath, args.filePath,
+        normalizeLineEndings(content),
+        normalizeLineEndings(newContent),
+      )
+      return { title: args.filePath, output: `Edit applied successfully.\n\n${trimDiff(diff)}` }
+    } catch (error) {
+      return { title: args.filePath, output: `Error: ${error instanceof Error ? error.message : String(error)}` }
+    }
   },
 })
 
