@@ -152,7 +152,11 @@ export namespace SessionProcessor {
                 toolPart.state = "running"
                 const tool = ToolRegistry.get(call.toolName) ?? ToolRegistry.get("invalid")
                 
-                if (!tool) continue
+                if (!tool) {
+                    toolPart.state = "error"
+                    toolPart.error = `Unknown tool: "${call.toolName}"`
+                    continue
+                }
 
                 try{
                     const ctx: Tool.Context = {
