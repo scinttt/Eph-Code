@@ -4,7 +4,7 @@ import { Permission } from "../../src/permission/permission"
 describe("Permission", () => {
     // Reset askHandler before each test to avoid cross-test pollution
     beforeEach(() => {
-        Permission.setAskHandler(null as any)
+        Permission.setAskHandler(null)
     })
 
     describe("check() via requestPermission()", () => {
@@ -68,6 +68,15 @@ describe("Permission", () => {
 
             await Permission.requestPermission("read", { filePath: "/tmp/test" })
             expect(called).toBe(false)
+        })
+
+        test("returns deny when handler throws error", async () => {
+            Permission.setAskHandler(async () => {
+                throw new Error("readline crashed")
+            })
+
+            const result = await Permission.requestPermission("bash", { command: "ls" })
+            expect(result).toBe("deny")
         })
 
         test("second setAskHandler replaces the first", async () => {
