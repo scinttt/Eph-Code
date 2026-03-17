@@ -24,6 +24,8 @@ export namespace SessionProcessor {
     /** Process conversation: loop LLM → tools until done, doom loop, or max steps */
     export async function process(sessionId: string, model?: string): Promise<"continue" | "compact" | "stop">{
         const system = await SystemPrompt.build()
+        /** Track recent tool calls across messages for cross-message doom loop detection */
+        const recentToolCalls: Array<{ toolName: string; args: string }> = []
 
         for(let step = 0; step < MAX_STEPS; step++){
             const messages = Session.getMessages(sessionId) ?? []
@@ -101,6 +103,13 @@ export namespace SessionProcessor {
                         break
                     case "error":
                         console.error(`\n[stream error] ${event.error}`)
+                        /** Mark any pending tool parts as error, then let loop continue */
+                        for (const part of assistantMsg.parts) {
+                            if (part.type === "tool" && (part.state === "pending" || part.state === "running")) {
+                                part.state = "error"
+                                part.error = `Stream error: ${event.error}`
+                            }
+                        }
                         break
                 }
             }
@@ -112,8 +121,11 @@ export namespace SessionProcessor {
                 return "stop"
             }
 
-            /** Doom loop detection: last 3 tool calls same name + same args */
-            if(isDoomLoop(assistantMsg.parts)){
+            /** Track tool calls for cross-message doom loop detection */
+            for (const call of toolCalls) {
+                recentToolCalls.push({ toolName: call.toolName, args: JSON.stringify(call.input) })
+            }
+            if (isDoomLoop(recentToolCalls)) {
                 console.error("\n[doom loop detected] terminating agent loop")
                 assistantMsg.time.completed = Date.now()
                 Session.addMessage(sessionId, assistantMsg)
@@ -165,17 +177,13 @@ export namespace SessionProcessor {
         return "stop"
     }
 
-    function isDoomLoop(parts: Message.Part[]): boolean{
-        const toolParts = parts.filter(
-            (p): p is Message.ToolPart => p.type === "tool"
-        )
-
-        if (toolParts.length < 3) return false
-
-        const last3 = toolParts.slice(-3)
+    /** Check if the last 3 tool calls (across messages) have same name + same args */
+    function isDoomLoop(calls: Array<{ toolName: string; args: string }>): boolean {
+        if (calls.length < 3) return false
+        const last3 = calls.slice(-3)
         const first = last3[0]!
         return last3.every(
-            (t) => t.toolName === first.toolName && JSON.stringify(t.args) === JSON.stringify(first.args)
+            (t) => t.toolName === first.toolName && t.args === first.args
         )
     }
 }
