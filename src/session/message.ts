@@ -57,20 +57,22 @@ export namespace Message {
                             content.push({type: "text",  text: part.text})
                             break
                         case "reasoning":
-                            content.push({type: "reasoning", reasoning: part.reasoning})
+                            content.push({type: "reasoning", text: part.reasoning})
                             break
                         case "tool":
                             content.push({
                                 type: "tool-call",
                                 toolCallId: part.toolCallId,
                                 toolName: part.toolName,
-                                args: part.args,
+                                input: part.args,
                             })
                             if(part.state === "completed" || part.state === "error"){
+                                const value = part.state === "completed" ? part.result ?? "" : part.error ?? "unknown error"
                                 toolResults.push({
                                     type: "tool-result",
                                     toolCallId: part.toolCallId,
-                                    result: part.state === "completed" ? part.result ?? "" : part.error ?? "unknown error"
+                                    toolName: part.toolName,
+                                    output: { type: "text", value },
                                 })
                             }
                             break;
