@@ -24,7 +24,7 @@ export namespace Permission {
     }
 
     // The method used by CLI to ask user
-    export function setAskHandler(handler: (toolName: string, args: unknown) => Promise<boolean>): void{
+    export function setAskHandler(handler: ((toolName: string, args: unknown) => Promise<boolean>) | null): void{
         askHandler = handler
     }
 
@@ -35,10 +35,17 @@ export namespace Permission {
         if(level === "deny") return "deny"
         //level == "ask"
         if(askHandler){
-            const allowed = await askHandler(toolName, args)
-            return allowed ? "allow" : "deny"
+            try {
+                const allowed = await askHandler(toolName, args)
+                return allowed ? "allow" : "deny"
+            } catch (error) {
+                console.error(`[permission] askHandler error: ${error instanceof Error ? error.message : String(error)}`)
+                return "deny"
+            }
         }
 
-        return "allow" // Allow by default
+        // Fallback: no askHandler registered (e.g. test env) → allow.
+        // CLI always registers a handler at startup, so this only fires in tests.
+        return "allow"
     }
 }

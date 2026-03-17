@@ -46,9 +46,14 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 // Register permission ask handler — prompts user via readline for dangerous tools
 Permission.setAskHandler(async (toolName, args) => {
   return new Promise<boolean>((resolve) => {
-    const preview = typeof args === "object" && args !== null
-      ? JSON.stringify(args, null, 2).slice(0, 200)
-      : String(args)
+    let preview: string
+    try {
+      preview = typeof args === "object" && args !== null
+        ? JSON.stringify(args, null, 2).slice(0, 200)
+        : String(args)
+    } catch {
+      preview = "[unserializable args]"
+    }
     rl.question(`\n⚠ Allow "${toolName}"?\n${preview}\n[y/n] `, (answer) => {
       resolve(answer.trim().toLowerCase().startsWith("y"))
     })
