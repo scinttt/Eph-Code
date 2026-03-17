@@ -14,6 +14,7 @@ import { EditTool } from "./tool/edit"
 import { GlobTool } from "./tool/glob"
 import { GrepTool } from "./tool/grep"
 import { InvalidTool } from "./tool/invalid"
+import { BashTool } from "./tool/bash"
 import { Permission } from "./permission/permission"
 
 if (process.argv.includes("--help")) {
@@ -32,6 +33,7 @@ ToolRegistry.register(WriteTool)
 ToolRegistry.register(EditTool)
 ToolRegistry.register(GlobTool)
 ToolRegistry.register(GrepTool)
+ToolRegistry.register(BashTool)
 ToolRegistry.register(InvalidTool)
 
 // Subscribe to text deltas for real-time printing

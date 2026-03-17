@@ -14,7 +14,7 @@ export namespace Agent {
     agents.set("build", {
         name: "build",
         systemPrompt: "build",
-        tools: ["read", "write", "edit", "glob", "grep", "invalid"],
+        tools: ["read", "write", "edit", "glob", "grep", "bash", "invalid"],
         maxSteps: 20
     })
 
