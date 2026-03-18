@@ -1,4 +1,5 @@
 import { BusEvent } from "./event"
+import { Log } from "../util/log"
 
 export namespace Bus {
     /** Map of event type → array of callbacks hooked to that event */
@@ -29,18 +30,18 @@ export namespace Bus {
         const list = subscriptions.get(def.type) ?? []
         const all = subscriptions.get("*") ?? []
         for (const callback of all){
-            try { 
-                callback({type: def.type, payload}) 
-            } catch (e) { 
-                console.error("[Bus] subscriber error:", e) 
+            try {
+                callback({type: def.type, payload})
+            } catch (e) {
+                Log.error(`[Bus] subscriber error on ${def.type}: ${e instanceof Error ? e.message : String(e)}`)
             }
         }
-            
+
         for (const callback of list){
-            try { 
-                callback(payload) 
-            } catch (e) { 
-                console.error("[Bus] subscriber error:", e) 
+            try {
+                callback(payload)
+            } catch (e) {
+                Log.error(`[Bus] subscriber error on ${def.type}: ${e instanceof Error ? e.message : String(e)}`)
             }
         }
     }

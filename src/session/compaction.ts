@@ -1,3 +1,4 @@
+import { Log } from "../util/log"
 import { Token } from "../util/token"
 import { Session } from "./session"
 import { Message } from "./message"
@@ -115,7 +116,7 @@ export namespace SessionCompaction{
             }
         } catch (error) {
             // Summarization failed — prune already done, continue without summary
-            console.error(`\n[compaction error] ${error instanceof Error ? error.message : String(error)}`)
+            Log.error(`[compaction error] ${error instanceof Error ? error.message : String(error)}`)
         }
     }
 }

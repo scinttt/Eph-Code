@@ -15,6 +15,7 @@ import { StatusBar, type AppStatus } from "./status"
 import { PermissionDialog } from "./permission"
 import { Banner } from "./banner"
 import { ToolRegistry } from "../tool/registry"
+import { Log } from "../util/log"
 
 const DOUBLE_PRESS_MS = 3000
 
@@ -29,13 +30,22 @@ export function App() {
     const streamRef = useRef("")
     const abortRef = useRef<AbortController>(new AbortController())
     const lastCtrlCRef = useRef<number>(0)
+    const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // Subscribe to Bus events with cleanup — filter by sessionId
     useEffect(() => {
         const unsub1 = Bus.subscribe(SessionProcessor.TextDelta, (p) => {
             if (p.sessionId !== sessionId) return
             streamRef.current += p.text
-            setStreamText(streamRef.current)
+            // Throttle React renders to ~30fps via setTimeout.
+            // Without this, for-await may yield many events in the same microtask,
+            // React batches all setStreamText calls, and UI never updates during streaming.
+            if (!flushTimerRef.current) {
+                flushTimerRef.current = setTimeout(() => {
+                    setStreamText(streamRef.current)
+                    flushTimerRef.current = null
+                }, 32)
+            }
         })
         const unsub2 = Bus.subscribe(SessionProcessor.ToolStart, (p) => {
             if (p.sessionId !== sessionId) return
@@ -52,7 +62,10 @@ export function App() {
                 setMessages(prev => [...prev, createDisplayMessage("tool", `✓ ${p.toolName}: ${preview}`)])
             }
         })
-        return () => { unsub1(); unsub2(); unsub3() }
+        return () => {
+            unsub1(); unsub2(); unsub3()
+            if (flushTimerRef.current) clearTimeout(flushTimerRef.current)
+        }
     }, [])
 
     // Register Permission handler with cleanup
@@ -127,15 +140,23 @@ export function App() {
         streamRef.current = ""
         setStreamText("")
 
+        Log.info(`[handleSubmit] starting loop for: "${text.slice(0, 50)}"`)
         try {
             await SessionPrompt.loop(sessionId, undefined, abortRef.current.signal)
+            Log.info("[handleSubmit] loop finished normally")
         } catch (error) {
-            // AbortError is expected when user presses Ctrl+C — don't show as error
             const msg = error instanceof Error ? error.message : String(error)
+            Log.error(`[handleSubmit] loop error: ${msg}`)
+            // AbortError is expected when user presses Ctrl+C — don't show as error
             if (!abortRef.current.signal.aborted) {
                 setMessages(prev => [...prev, createDisplayMessage("error", msg)])
             }
         } finally {
+            // Cancel any pending flush timer
+            if (flushTimerRef.current) {
+                clearTimeout(flushTimerRef.current)
+                flushTimerRef.current = null
+            }
             const finalText = streamRef.current
             streamRef.current = ""
             setStreamText("")

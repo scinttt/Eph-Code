@@ -1,3 +1,5 @@
+import { Log } from "../util/log"
+
 export namespace Permission {
     type Level = "allow" | "ask" | "deny"
 
@@ -39,7 +41,7 @@ export namespace Permission {
                 const allowed = await askHandler(toolName, args)
                 return allowed ? "allow" : "deny"
             } catch (error) {
-                console.error(`[permission] askHandler error: ${error instanceof Error ? error.message : String(error)}`)
+                Log.error(`[permission] askHandler error: ${error instanceof Error ? error.message : String(error)}`)
                 return "deny"
             }
         }

@@ -12,6 +12,7 @@ import { SessionRetry } from "./retry"
 import { SessionCompaction } from "./compaction"
 import { Tool } from "../tool/tool"
 import { Permission } from "../permission/permission"
+import { Log } from "../util/log"
 
 const MAX_STEPS = 20
 const MAX_RETRIES = 3
@@ -60,7 +61,7 @@ export namespace SessionProcessor {
                 } catch (error){
                     if(attempt < MAX_RETRIES && SessionRetry.retryable(error)){
                         const delayMs =  SessionRetry.delay(attempt, error)
-                        console.error(`\n[retry ${attempt + 1}/${MAX_RETRIES}] waiting +${delayMs}ms...`)
+                        Log.warn(`[retry ${attempt + 1}/${MAX_RETRIES}] waiting +${delayMs}ms...`)
                         await SessionRetry.sleep(delayMs)
                         continue
                     }
@@ -120,7 +121,7 @@ export namespace SessionProcessor {
                         })
                         break
                     case "error":
-                        console.error(`\n[stream error] ${event.error}`)
+                        Log.error(`[stream error] ${event.error}`)
                         /** Mark any pending tool parts as error, then let loop continue */
                         for (const part of assistantMsg.parts) {
                             if (part.type === "tool" && (part.state === "pending" || part.state === "running")) {
@@ -144,7 +145,7 @@ export namespace SessionProcessor {
                 recentToolCalls.push({ toolName: call.toolName, args: JSON.stringify(call.input) })
             }
             if (isDoomLoop(recentToolCalls)) {
-                console.error("\n[doom loop detected] terminating agent loop")
+                Log.warn("[doom loop detected] terminating agent loop")
                 assistantMsg.time.completed = Date.now()
                 Session.addMessage(sessionId, assistantMsg)
                 return "stop"
@@ -207,7 +208,7 @@ export namespace SessionProcessor {
             }
         }
         
-        console.error(`\n[max steps ${MAX_STEPS} reached] terminating agent loop`)
+        Log.warn(`[max steps ${MAX_STEPS} reached] terminating agent loop`)
         return "stop"
     }
 

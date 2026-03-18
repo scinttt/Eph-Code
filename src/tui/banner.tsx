@@ -1,5 +1,6 @@
 import React from "react"
 import { Box, Text } from "ink"
+import { Log } from "../util/log"
 
 const LOGO = `
   ███████╗██████╗ ██╗  ██╗
@@ -25,8 +26,9 @@ export function Banner({ model, toolCount }: Props) {
                 <Text>Model: <Text color="green">{model}</Text></Text>
                 <Text>Tools: <Text color="green">{toolCount}</Text> available</Text>
             </Box>
-            <Box marginTop={1}>
+            <Box marginTop={1} flexDirection="column" alignItems="center">
                 <Text dimColor>Type a message to start, "exit" to quit</Text>
+                <Text dimColor>Log: {Log.getLogPath()}</Text>
             </Box>
         </Box>
     )

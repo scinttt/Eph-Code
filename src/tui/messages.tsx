@@ -34,12 +34,48 @@ const ROLE_PREFIX: Record<DisplayMessage["role"], string> = {
     tool: "Tool",
 }
 
+/** Estimate how many terminal rows a message will occupy */
+function estimateRows(text: string, termWidth: number): number {
+    const prefix = 6 // "LLM: " or "You: " etc.
+    const usable = Math.max(20, termWidth - 4) // paddingX + prefix
+    let rows = 0
+    for (const line of text.split("\n")) {
+        // Chinese/CJK characters are ~2 columns wide in terminal
+        let cols = 0
+        for (const ch of line) {
+            cols += ch.charCodeAt(0) > 0x7f ? 2 : 1
+        }
+        rows += Math.max(1, Math.ceil((cols + prefix) / usable))
+    }
+    return rows + 1 // +1 for marginBottom
+}
+
+/** Clip messages from the end to fit within maxRows */
+function clipMessages(messages: DisplayMessage[], maxRows: number, termWidth: number): DisplayMessage[] {
+    let rowCount = 0
+    let startIndex = messages.length
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const msgRows = estimateRows(messages[i]!.text, termWidth)
+        if (rowCount + msgRows > maxRows) break
+        rowCount += msgRows
+        startIndex = i
+    }
+    return messages.slice(startIndex)
+}
+
 export function Messages({ messages, streamText, reserveRows = 0 }: Props) {
-    // Self-clip: Ink's overflow="hidden" doesn't reliably clip content.
-    // Only render last N messages that fit in available terminal height.
-    // Reserve: 3 StatusBar + 1 Input + 1 padding + extra for PermissionDialog etc.
-    const maxVisible = Math.max(3, (process.stdout.rows ?? 24) - 5 - reserveRows)
-    const visible = messages.slice(-maxVisible)
+    const termWidth = process.stdout.columns ?? 80
+    const termHeight = process.stdout.rows ?? 24
+    // Reserve: 3 StatusBar (border+content+border) + 1 Input + 1 padding + extra
+    const maxRows = Math.max(3, termHeight - 5 - reserveRows)
+
+    // Account for streaming text rows
+    let availableRows = maxRows
+    if (streamText) {
+        availableRows -= estimateRows(streamText, termWidth)
+    }
+
+    const visible = clipMessages(messages, Math.max(1, availableRows), termWidth)
 
     return (
         <Box flexDirection="column" flexGrow={1} paddingX={1}>
