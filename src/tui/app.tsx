@@ -126,7 +126,7 @@ export function App() {
             {showBanner ? (
                 <Banner model={model} toolCount={ToolRegistry.all().length} />
             ) : (
-                <Messages messages={messages} streamText={streamText} />
+                <Messages messages={messages} streamText={streamText} reserveRows={permDialog ? 1 : 0} />
             )}
             {permDialog && (
                 <PermissionDialog

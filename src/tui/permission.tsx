@@ -16,18 +16,21 @@ export function PermissionDialog({ toolName, args, onRespond }: Props) {
     let preview: string
     try {
         preview = typeof args === "object" && args !== null
-            ? JSON.stringify(args, null, 2).slice(0, 200)
-            : String(args)
+            ? JSON.stringify(args).slice(0, 80)
+            : String(args).slice(0, 80)
     } catch {
         preview = "[unserializable]"
     }
 
     return (
-        <Box borderStyle="round" borderColor="yellow" paddingX={1} flexDirection="column">
-            <Text bold color="yellow">{"⚠ Permission Required"}</Text>
-            <Text>Tool: <Text bold>{toolName}</Text></Text>
-            <Text dimColor>{preview}</Text>
-            <Text>Allow? <Text bold color="green">[y]</Text> / <Text bold color="red">[n]</Text></Text>
+        <Box paddingX={1}>
+            <Text color="yellow" bold>{"⚠ "}</Text>
+            <Text>Allow </Text>
+            <Text bold color="cyan">{toolName}</Text>
+            <Text dimColor> {preview} </Text>
+            <Text bold color="green">[y]</Text>
+            <Text> / </Text>
+            <Text bold color="red">[n]</Text>
         </Box>
     )
 }

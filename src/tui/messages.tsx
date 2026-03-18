@@ -17,6 +17,7 @@ export function createDisplayMessage(role: DisplayMessage["role"], text: string)
 type Props = {
     messages: DisplayMessage[]
     streamText: string
+    reserveRows?: number
 }
 
 const ROLE_COLOR: Record<DisplayMessage["role"], string> = {
@@ -33,10 +34,16 @@ const ROLE_PREFIX: Record<DisplayMessage["role"], string> = {
     tool: "Tool",
 }
 
-export function Messages({ messages, streamText }: Props) {
+export function Messages({ messages, streamText, reserveRows = 0 }: Props) {
+    // Self-clip: Ink's overflow="hidden" doesn't reliably clip content.
+    // Only render last N messages that fit in available terminal height.
+    // Reserve: 3 StatusBar + 1 Input + 1 padding + extra for PermissionDialog etc.
+    const maxVisible = Math.max(3, (process.stdout.rows ?? 24) - 5 - reserveRows)
+    const visible = messages.slice(-maxVisible)
+
     return (
-        <Box flexDirection="column" flexGrow={1} paddingX={1} overflow="hidden">
-            {messages.map((msg) => (
+        <Box flexDirection="column" flexGrow={1} paddingX={1}>
+            {visible.map((msg) => (
                 <Box key={msg.id} marginBottom={msg.role === "user" ? 0 : 1}>
                     <Text bold color={ROLE_COLOR[msg.role]}>
                         {ROLE_PREFIX[msg.role]}:{" "}
