@@ -1,9 +1,17 @@
 import React from "react"
 import { Box, Text } from "ink"
 
+let msgCounter = 0
+
 export type DisplayMessage = {
+    id: number
     role: "user" | "assistant" | "error" | "tool"
     text: string
+}
+
+/** Create a DisplayMessage with auto-incrementing ID */
+export function createDisplayMessage(role: DisplayMessage["role"], text: string): DisplayMessage {
+    return { id: ++msgCounter, role, text }
 }
 
 type Props = {
@@ -28,8 +36,8 @@ const ROLE_PREFIX: Record<DisplayMessage["role"], string> = {
 export function Messages({ messages, streamText }: Props) {
     return (
         <Box flexDirection="column" flexGrow={1} paddingX={1} overflow="hidden">
-            {messages.map((msg, i) => (
-                <Box key={i} marginBottom={msg.role === "user" ? 0 : 1}>
+            {messages.map((msg) => (
+                <Box key={msg.id} marginBottom={msg.role === "user" ? 0 : 1}>
                     <Text bold color={ROLE_COLOR[msg.role]}>
                         {ROLE_PREFIX[msg.role]}:{" "}
                     </Text>

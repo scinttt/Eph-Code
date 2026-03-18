@@ -9,7 +9,7 @@ import { Identifier } from "../util/id"
 import { Bus } from "../bus/bus"
 import { Permission } from "../permission/permission"
 
-import { Messages, type DisplayMessage } from "./messages"
+import { Messages, type DisplayMessage, createDisplayMessage } from "./messages"
 import { Input } from "./input"
 import { StatusBar, type AppStatus } from "./status"
 import { PermissionDialog } from "./permission"
@@ -24,29 +24,33 @@ export function App() {
     const permResolveRef = useRef<((allowed: boolean) => void) | null>(null)
     const streamRef = useRef("")
 
-    // Subscribe to Bus events with cleanup
+    // Subscribe to Bus events with cleanup — filter by sessionId
     useEffect(() => {
         const unsub1 = Bus.subscribe(SessionProcessor.TextDelta, (p) => {
+            if (p.sessionId !== sessionId) return
             streamRef.current += p.text
             setStreamText(streamRef.current)
         })
         const unsub2 = Bus.subscribe(SessionProcessor.ToolStart, (p) => {
+            if (p.sessionId !== sessionId) return
             setStatus("tool")
-            setMessages(prev => [...prev, { role: "tool", text: `▶ ${p.toolName}...` }])
+            setMessages(prev => [...prev, createDisplayMessage("tool", `▶ ${p.toolName}...`)])
         })
         const unsub3 = Bus.subscribe(SessionProcessor.ToolEnd, (p) => {
+            if (p.sessionId !== sessionId) return
             setStatus("thinking")
             if (p.error) {
-                setMessages(prev => [...prev, { role: "error", text: `✗ ${p.toolName}: ${p.error}` }])
+                setMessages(prev => [...prev, createDisplayMessage("error", `✗ ${p.toolName}: ${p.error}`)])
             } else {
                 const preview = (p.result ?? "").slice(0, 200)
-                setMessages(prev => [...prev, { role: "tool", text: `✓ ${p.toolName}: ${preview}` }])
+                setMessages(prev => [...prev, createDisplayMessage("tool", `✓ ${p.toolName}: ${preview}`)])
             }
         })
         return () => { unsub1(); unsub2(); unsub3() }
     }, [])
 
     // Register Permission handler with cleanup
+    // Note: concurrent permission requests won't happen — processor executes tools sequentially
     useEffect(() => {
         Permission.setAskHandler(async (toolName, args) => {
             return new Promise<boolean>((resolve) => {
@@ -57,9 +61,9 @@ export function App() {
         return () => { Permission.setAskHandler(null) }
     }, [])
 
-    // Ctrl+C / exit handling
+    // Ctrl+Q exit — disabled during permission dialog to avoid accidental exit
     useInput((input, key) => {
-        if (input === "q" && key.ctrl) exit()
+        if (input === "q" && key.ctrl && !permDialog) exit()
     })
 
     const handlePermission = (allowed: boolean) => {
@@ -85,7 +89,7 @@ export function App() {
             metadata: {},
         }
         Session.addMessage(sessionId, userMsg)
-        setMessages(prev => [...prev, { role: "user", text }])
+        setMessages(prev => [...prev, createDisplayMessage("user", text)])
 
         // Run agent loop
         setStatus("thinking")
@@ -95,25 +99,27 @@ export function App() {
         try {
             await SessionPrompt.loop(sessionId)
         } catch (error) {
-            setMessages(prev => [...prev, {
-                role: "error",
-                text: error instanceof Error ? error.message : String(error),
-            }])
+            setMessages(prev => [...prev, createDisplayMessage(
+                "error",
+                error instanceof Error ? error.message : String(error),
+            )])
+        } finally {
+            // Capture ref value BEFORE clearing — React batches setState,
+            // and the functional update closure would read the already-cleared ref
+            const finalText = streamRef.current
+            streamRef.current = ""
+            setStreamText("")
+            if (finalText) {
+                setMessages(prev => [...prev, createDisplayMessage("assistant", finalText)])
+            }
+            setStatus("idle")
         }
-
-        // Finalize: move streamed text to messages
-        if (streamRef.current) {
-            setMessages(prev => [...prev, { role: "assistant", text: streamRef.current }])
-        }
-        streamRef.current = ""
-        setStreamText("")
-        setStatus("idle")
     }
 
     const model = process.env.EPH_MODEL ?? "deepseek/deepseek-chat"
 
     return (
-        <Box flexDirection="column" height={process.stdout.rows}>
+        <Box flexDirection="column" height={process.stdout.rows ?? 24}>
             <Messages messages={messages} streamText={streamText} />
             <StatusBar status={status} model={model} />
             {permDialog ? (
