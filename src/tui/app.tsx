@@ -16,6 +16,7 @@ import { PermissionDialog } from "./permission"
 import { Banner } from "./banner"
 import { ToolRegistry } from "../tool/registry"
 import { Log } from "../util/log"
+import { useTerminalSize } from "./use-terminal-size"
 
 const DOUBLE_PRESS_MS = 3000
 
@@ -30,6 +31,7 @@ export function App() {
     const streamRef = useRef("")
     const abortRef = useRef<AbortController>(new AbortController())
     const lastCtrlCRef = useRef<number>(0)
+    const { rows: termRows, columns: termColumns } = useTerminalSize()
     const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // Subscribe to Bus events with cleanup — filter by sessionId
@@ -171,11 +173,11 @@ export function App() {
     const showBanner = messages.length === 0 && !streamText
 
     return (
-        <Box flexDirection="column" height={process.stdout.rows ?? 24}>
+        <Box flexDirection="column" height={termRows}>
             {showBanner ? (
                 <Banner model={model} toolCount={ToolRegistry.all().length} />
             ) : (
-                <Messages messages={messages} streamText={streamText} reserveRows={permDialog ? 1 : 0} />
+                <Messages messages={messages} streamText={streamText} reserveRows={permDialog ? 1 : 0} termRows={termRows} termColumns={termColumns} />
             )}
             {permDialog && (
                 <PermissionDialog

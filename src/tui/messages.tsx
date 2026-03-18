@@ -18,6 +18,8 @@ type Props = {
     messages: DisplayMessage[]
     streamText: string
     reserveRows?: number
+    termRows: number
+    termColumns: number
 }
 
 const ROLE_COLOR: Record<DisplayMessage["role"], string> = {
@@ -63,19 +65,17 @@ function clipMessages(messages: DisplayMessage[], maxRows: number, termWidth: nu
     return messages.slice(startIndex)
 }
 
-export function Messages({ messages, streamText, reserveRows = 0 }: Props) {
-    const termWidth = process.stdout.columns ?? 80
-    const termHeight = process.stdout.rows ?? 24
+export function Messages({ messages, streamText, reserveRows = 0, termRows, termColumns }: Props) {
     // Reserve: 3 StatusBar (border+content+border) + 1 Input + 1 padding + extra
-    const maxRows = Math.max(3, termHeight - 5 - reserveRows)
+    const maxRows = Math.max(3, termRows - 5 - reserveRows)
 
     // Account for streaming text rows
     let availableRows = maxRows
     if (streamText) {
-        availableRows -= estimateRows(streamText, termWidth)
+        availableRows -= estimateRows(streamText, termColumns)
     }
 
-    const visible = clipMessages(messages, Math.max(1, availableRows), termWidth)
+    const visible = clipMessages(messages, Math.max(1, availableRows), termColumns)
 
     return (
         <Box flexDirection="column" flexGrow={1} paddingX={1}>
