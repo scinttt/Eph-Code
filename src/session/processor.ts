@@ -38,12 +38,14 @@ export namespace SessionProcessor {
     }))
 
     /** Process conversation: loop LLM → tools until done, doom loop, or max steps */
-    export async function process(sessionId: string, model?: string): Promise<"continue" | "compact" | "stop">{
+    export async function process(sessionId: string, model?: string, abort?: AbortSignal): Promise<"continue" | "compact" | "stop">{
         const system = await SystemPrompt.build()
         /** Track recent tool calls across messages for cross-message doom loop detection */
         const recentToolCalls: Array<{ toolName: string; args: string }> = []
 
         for(let step = 0; step < MAX_STEPS; step++){
+            // Check abort signal at the start of each step
+            if (abort?.aborted) return "stop"
             const messages = Session.getMessages(sessionId) ?? []
             const modelMessages = Message.toModelMessages(messages)
 
@@ -52,7 +54,7 @@ export namespace SessionProcessor {
             for(let attempt = 0; attempt <= MAX_RETRIES; attempt++){
                 try{
                     response =  await LLM.stream({
-                        model, system, messages: modelMessages
+                        model, system, messages: modelMessages, abort
                     })
                     break
                 } catch (error){

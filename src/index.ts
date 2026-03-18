@@ -32,4 +32,4 @@ ToolRegistry.register(BashTool)
 ToolRegistry.register(InvalidTool)
 
 // Render TUI — session creation, Bus subscriptions, and Permission handler are inside App
-render(React.createElement(App))
+render(React.createElement(App), { exitOnCtrlC: false })

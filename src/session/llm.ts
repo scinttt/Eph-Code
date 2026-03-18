@@ -9,6 +9,7 @@ export namespace LLM {
         system: string[]
         messages: any[]
         sessionId?: string
+        abort?: AbortSignal
     }
 
     /** Start a single-round streaming LLM call (no auto tool execution) */
@@ -27,7 +28,8 @@ export namespace LLM {
             model,
             system: input.system.join("\n\n"),
             messages: input.messages,
-            tools
+            tools,
+            abortSignal: input.abort,
         })
     }
 }
