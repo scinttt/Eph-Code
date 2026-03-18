@@ -1,12 +1,7 @@
 #!/usr/bin/env bun
 
-import * as readline from "readline"
-import { Session } from "./session/session"
-import { SessionPrompt } from "./session/prompt"
-import { SessionProcessor } from "./session/processor"
-import { Message } from "./session/message"
-import { Identifier } from "./util/id"
-import { Bus } from "./bus/bus"
+import React from "react"
+import { render } from "ink"
 import { ToolRegistry } from "./tool/registry"
 import { ReadTool } from "./tool/read"
 import { WriteTool } from "./tool/write"
@@ -15,7 +10,7 @@ import { GlobTool } from "./tool/glob"
 import { GrepTool } from "./tool/grep"
 import { InvalidTool } from "./tool/invalid"
 import { BashTool } from "./tool/bash"
-import { Permission } from "./permission/permission"
+import { App } from "./tui/app"
 
 if (process.argv.includes("--help")) {
   console.log("eph-code - a coding agent CLI tool")
@@ -36,62 +31,5 @@ ToolRegistry.register(GrepTool)
 ToolRegistry.register(BashTool)
 ToolRegistry.register(InvalidTool)
 
-// Subscribe to text deltas for real-time printing
-Bus.subscribe(SessionProcessor.TextDelta, (payload) => {
-  process.stdout.write(payload.text)
-})
-
-// Create session and start CLI
-const session = Session.create()
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-
-// Register permission ask handler — prompts user via readline for dangerous tools
-Permission.setAskHandler(async (toolName, args) => {
-  return new Promise<boolean>((resolve) => {
-    let preview: string
-    try {
-      preview = typeof args === "object" && args !== null
-        ? JSON.stringify(args, null, 2).slice(0, 200)
-        : String(args)
-    } catch {
-      preview = "[unserializable args]"
-    }
-    rl.question(`\n⚠ Allow "${toolName}"?\n${preview}\n[y/n] `, (answer) => {
-      resolve(answer.trim().toLowerCase().startsWith("y"))
-    })
-  })
-})
-
-function prompt() {
-  rl.question("eph-code> ", async (input) => {
-    const trimmed = input.trim()
-    if(!trimmed || trimmed === "exit"){
-      rl.close()
-      process.exit(0)
-    }
-
-    // Create user message and add to session
-    const userMsg: Message.Info = {
-      id: Identifier.ascending("msg"),
-      sessionId: session.id,
-      role: "user",
-      parts: [{ type: "text", text: trimmed }],
-      time: { created: Date.now() },
-      metadata: {},
-    }
-    Session.addMessage(session.id, userMsg)
-
-    try{
-      // Run agent loop
-      await SessionPrompt.loop(session.id)
-    } catch (error) {
-      console.error(`\nError: ${error instanceof Error ? error.message : String(error)}`)
-    }
-    
-    console.log()
-
-    prompt()
-  })
-}
-
-prompt()
+// Render TUI — session creation, Bus subscriptions, and Permission handler are inside App
+render(React.createElement(App))
