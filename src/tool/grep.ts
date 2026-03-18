@@ -1,7 +1,23 @@
 import { z } from "zod"
 import { Tool } from "./tool"
-import { execFileSync } from "child_process"
+import { execFile } from "child_process"
+import { promisify } from "util"
 import DESCRIPTION from "./grep.md"
+
+const execFileAsync = promisify(execFile)
+
+/** Cache ripgrep availability — no need to check every call */
+let rgAvailable: boolean | null = null
+async function hasRg(): Promise<boolean> {
+    if (rgAvailable !== null) return rgAvailable
+    try {
+        await execFileAsync("which", ["rg"])
+        rgAvailable = true
+    } catch {
+        rgAvailable = false
+    }
+    return rgAvailable
+}
 
 export const GrepTool = Tool.define("grep", {
     description: DESCRIPTION,
@@ -13,14 +29,10 @@ export const GrepTool = Tool.define("grep", {
     execute: async (args, ctx) => {
         const cwd = args.path ?? process.cwd()
 
-        // Build args array to avoid shell injection
-        const hasRg = (() => {
-            try { execFileSync("which", ["rg"], { stdio: "ignore" }); return true } catch { return false }
-        })()
-
+        const useRg = await hasRg()
         let bin: string
         let cmdArgs: string[]
-        if (hasRg) {
+        if (useRg) {
             bin = "rg"
             cmdArgs = ["-n", "--no-heading", args.pattern]
             if (args.include) cmdArgs.push("-g", args.include)
@@ -32,9 +44,12 @@ export const GrepTool = Tool.define("grep", {
         }
 
         try {
-            const output = execFileSync(bin, cmdArgs, { encoding: "utf-8", maxBuffer: 1024 * 1024 })
-            if (!output.trim()) return { title: args.pattern, output: "No matches found." }
-            return { title: args.pattern, output: output.trim() }
+            const { stdout } = await execFileAsync(bin, cmdArgs, {
+                encoding: "utf-8",
+                maxBuffer: 1024 * 1024,
+            })
+            if (!stdout.trim()) return { title: args.pattern, output: "No matches found." }
+            return { title: args.pattern, output: stdout.trim() }
         } catch {
             return { title: args.pattern, output: "No matches found." }
         }
