@@ -26,6 +26,29 @@ describe("Bus", () => {
     expect(results).toEqual([20, 30])
   })
 
+  it("unsubscribe stops delivery", () => {
+    const UnsEvent = BusEvent.define("test.unsub", z.object({ v: z.number() }))
+    let count = 0
+    const unsub = Bus.subscribe(UnsEvent, () => { count++ })
+    Bus.publish(UnsEvent, { v: 1 })
+    expect(count).toBe(1)
+    unsub()
+    Bus.publish(UnsEvent, { v: 2 })
+    expect(count).toBe(1) // not incremented after unsub
+  })
+
+  it("unsubscribeAll stops delivery", () => {
+    let count = 0
+    const unsub = Bus.subscribeAll(() => { count++ })
+    const E = BusEvent.define("test.unsub.all", z.object({}))
+    Bus.publish(E, {})
+    expect(count).toBeGreaterThan(0)
+    const before = count
+    unsub()
+    Bus.publish(E, {})
+    expect(count).toBe(before) // not incremented after unsub
+  })
+
   it("subscribeAll should receive all events", () => {
     const received: string[] = []
     Bus.subscribeAll((payload) => {
