@@ -13,6 +13,8 @@ import { Messages, type DisplayMessage, createDisplayMessage } from "./messages"
 import { Input } from "./input"
 import { StatusBar, type AppStatus } from "./status"
 import { PermissionDialog } from "./permission"
+import { Banner } from "./banner"
+import { ToolRegistry } from "../tool/registry"
 
 export function App() {
     const { exit } = useApp()
@@ -117,20 +119,24 @@ export function App() {
     }
 
     const model = process.env.EPH_MODEL ?? "deepseek/deepseek-chat"
+    const showBanner = messages.length === 0 && !streamText
 
     return (
         <Box flexDirection="column" height={process.stdout.rows ?? 24}>
-            <Messages messages={messages} streamText={streamText} />
-            <StatusBar status={status} model={model} />
-            {permDialog ? (
+            {showBanner ? (
+                <Banner model={model} toolCount={ToolRegistry.all().length} />
+            ) : (
+                <Messages messages={messages} streamText={streamText} />
+            )}
+            {permDialog && (
                 <PermissionDialog
                     toolName={permDialog.toolName}
                     args={permDialog.args}
                     onRespond={handlePermission}
                 />
-            ) : (
-                <Input onSubmit={handleSubmit} disabled={status !== "idle"} />
             )}
+            <StatusBar status={status} model={model} />
+            <Input onSubmit={handleSubmit} disabled={status !== "idle"} />
         </Box>
     )
 }
