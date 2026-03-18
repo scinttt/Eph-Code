@@ -22,6 +22,21 @@ export namespace SessionProcessor {
         text: z.string(),
     }))
 
+    /** Event: broadcast when a tool starts executing */
+    export const ToolStart = BusEvent.define("processor.tool.start", z.object({
+        sessionId: z.string(),
+        toolName: z.string(),
+        args: z.unknown(),
+    }))
+
+    /** Event: broadcast when a tool finishes executing */
+    export const ToolEnd = BusEvent.define("processor.tool.end", z.object({
+        sessionId: z.string(),
+        toolName: z.string(),
+        result: z.string().optional(),
+        error: z.string().optional(),
+    }))
+
     /** Process conversation: loop LLM → tools until done, doom loop, or max steps */
     export async function process(sessionId: string, model?: string): Promise<"continue" | "compact" | "stop">{
         const system = await SystemPrompt.build()
@@ -151,12 +166,14 @@ export namespace SessionProcessor {
 
                 toolPart.state = "running"
                 const tool = ToolRegistry.get(call.toolName) ?? ToolRegistry.get("invalid")
-                
+
                 if (!tool) {
                     toolPart.state = "error"
                     toolPart.error = `Unknown tool: "${call.toolName}"`
                     continue
                 }
+
+                Bus.publish(ToolStart, { sessionId, toolName: call.toolName, args: call.input })
 
                 try{
                     const ctx: Tool.Context = {
@@ -171,9 +188,11 @@ export namespace SessionProcessor {
                     const result = await tool.execute(call.input, ctx)
                     toolPart.state = "completed"
                     toolPart.result = result.output
+                    Bus.publish(ToolEnd, { sessionId, toolName: call.toolName, result: result.output })
                 } catch (error) {
                     toolPart.state = "error"
                     toolPart.error = error instanceof Error ? error.message : String(error)
+                    Bus.publish(ToolEnd, { sessionId, toolName: call.toolName, error: toolPart.error })
                 }
             }
 

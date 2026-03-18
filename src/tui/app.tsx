@@ -30,7 +30,20 @@ export function App() {
             streamRef.current += p.text
             setStreamText(streamRef.current)
         })
-        return () => { unsub1() }
+        const unsub2 = Bus.subscribe(SessionProcessor.ToolStart, (p) => {
+            setStatus("tool")
+            setMessages(prev => [...prev, { role: "tool", text: `▶ ${p.toolName}...` }])
+        })
+        const unsub3 = Bus.subscribe(SessionProcessor.ToolEnd, (p) => {
+            setStatus("thinking")
+            if (p.error) {
+                setMessages(prev => [...prev, { role: "error", text: `✗ ${p.toolName}: ${p.error}` }])
+            } else {
+                const preview = (p.result ?? "").slice(0, 200)
+                setMessages(prev => [...prev, { role: "tool", text: `✓ ${p.toolName}: ${preview}` }])
+            }
+        })
+        return () => { unsub1(); unsub2(); unsub3() }
     }, [])
 
     // Register Permission handler with cleanup
