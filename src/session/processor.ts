@@ -30,6 +30,13 @@ export namespace SessionProcessor {
         args: z.unknown(),
     }))
 
+    /** Event: broadcast token usage after each LLM call */
+    export const UsageUpdate = BusEvent.define("processor.usage", z.object({
+        sessionId: z.string(),
+        input: z.number(),
+        output: z.number(),
+    }))
+
     /** Event: broadcast when a tool finishes executing */
     export const ToolEnd = BusEvent.define("processor.tool.end", z.object({
         sessionId: z.string(),
@@ -133,6 +140,16 @@ export namespace SessionProcessor {
                 }
             }
             
+            /** Publish token usage (AI SDK v6: usage is a Promise, resolves after stream ends) */
+            try {
+                const usage = await response.usage
+                if (usage?.inputTokens != null && usage?.outputTokens != null) {
+                    Bus.publish(UsageUpdate, { sessionId, input: usage.inputTokens, output: usage.outputTokens })
+                }
+            } catch {
+                // Some providers don't return usage — silently skip
+            }
+
             /** No tool calls — LLM is done, save and return */
             if (toolCalls.length === 0) {
                 assistantMsg.time.completed = Date.now()

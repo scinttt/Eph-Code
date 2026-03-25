@@ -31,6 +31,7 @@ export function App() {
     const streamRef = useRef("")
     const abortRef = useRef<AbortController>(new AbortController())
     const lastCtrlCRef = useRef<number>(0)
+    const [totalTokens, setTotalTokens] = useState({ input: 0, output: 0 })
     const { rows: termRows, columns: termColumns } = useTerminalSize()
     const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -64,8 +65,12 @@ export function App() {
                 setMessages(prev => [...prev, createDisplayMessage("tool", `✓ ${p.toolName}: ${preview}`)])
             }
         })
+        const unsub4 = Bus.subscribe(SessionProcessor.UsageUpdate, (p) => {
+            if (p.sessionId !== sessionId) return
+            setTotalTokens(prev => ({ input: prev.input + p.input, output: prev.output + p.output }))
+        })
         return () => {
-            unsub1(); unsub2(); unsub3()
+            unsub1(); unsub2(); unsub3(); unsub4()
             if (flushTimerRef.current) clearTimeout(flushTimerRef.current)
         }
     }, [])
@@ -186,7 +191,7 @@ export function App() {
                     onRespond={handlePermission}
                 />
             )}
-            <StatusBar status={status} model={model} />
+            <StatusBar status={status} model={model} tokens={totalTokens} />
             <Input onSubmit={handleSubmit} disabled={status !== "idle"} />
         </Box>
     )

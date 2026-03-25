@@ -6,6 +6,7 @@ export type AppStatus = "idle" | "thinking" | "tool"
 type Props = {
     status: AppStatus
     model: string
+    tokens: { input: number; output: number }
 }
 
 const STATUS_COLOR: Record<AppStatus, string> = {
@@ -22,7 +23,13 @@ function formatElapsed(seconds: number): string {
     return `${m}m ${s}s`
 }
 
-export function StatusBar({ status, model }: Props) {
+/** Format token count as "1.2k" or "42" */
+function formatTokens(n: number): string {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+    return String(n)
+}
+
+export function StatusBar({ status, model, tokens }: Props) {
     const [elapsed, setElapsed] = useState(0)
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -51,10 +58,18 @@ export function StatusBar({ status, model }: Props) {
         label = `Running tool... ${formatElapsed(elapsed)}`
     }
 
+    const total = tokens.input + tokens.output
+    const tokenLabel = total > 0
+        ? `↑${formatTokens(tokens.input)} ↓${formatTokens(tokens.output)}`
+        : ""
+
     return (
         <Box borderStyle="single" borderColor="gray" paddingX={1} justifyContent="space-between">
             <Text color={STATUS_COLOR[status]}>{label}</Text>
-            <Text dimColor>Model: {model}</Text>
+            <Box>
+                {tokenLabel && <Text dimColor>{tokenLabel}  </Text>}
+                <Text dimColor>Model: {model}</Text>
+            </Box>
         </Box>
     )
 }
