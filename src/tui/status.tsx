@@ -7,7 +7,10 @@ type Props = {
     status: AppStatus
     model: string
     tokens: { input: number; output: number }
+    latestInput: number
 }
+
+const CONTEXT_LIMIT = 120_000
 
 const STATUS_COLOR: Record<AppStatus, string> = {
     idle: "green",
@@ -29,7 +32,7 @@ function formatTokens(n: number): string {
     return String(n)
 }
 
-export function StatusBar({ status, model, tokens }: Props) {
+export function StatusBar({ status, model, tokens, latestInput }: Props) {
     const [elapsed, setElapsed] = useState(0)
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -59,15 +62,23 @@ export function StatusBar({ status, model, tokens }: Props) {
     }
 
     const total = tokens.input + tokens.output
+    const usagePercent = latestInput > 0 ? Math.round(latestInput / CONTEXT_LIMIT * 100) : 0
     const tokenLabel = total > 0
-        ? `↑${formatTokens(tokens.input)} ↓${formatTokens(tokens.output)}`
+        ? `↑${formatTokens(tokens.input)} ↓${formatTokens(tokens.output)} tokens (${usagePercent}%)`
         : ""
+    const percentColor = usagePercent >= 80 ? "red" : usagePercent >= 60 ? "yellow" : undefined
 
     return (
         <Box borderStyle="single" borderColor="gray" paddingX={1} justifyContent="space-between">
             <Text color={STATUS_COLOR[status]}>{label}</Text>
             <Box>
-                {tokenLabel && <Text dimColor>{tokenLabel}  </Text>}
+                {tokenLabel && (
+                    <>
+                        <Text dimColor>{`↑${formatTokens(tokens.input)} ↓${formatTokens(tokens.output)} tokens `}</Text>
+                        <Text color={percentColor} dimColor={!percentColor}>({usagePercent}%)</Text>
+                        <Text>  </Text>
+                    </>
+                )}
                 <Text dimColor>Model: {model}</Text>
             </Box>
         </Box>

@@ -32,6 +32,7 @@ export function App() {
     const abortRef = useRef<AbortController>(new AbortController())
     const lastCtrlCRef = useRef<number>(0)
     const [totalTokens, setTotalTokens] = useState({ input: 0, output: 0 })
+    const [latestInput, setLatestInput] = useState(0)
     const { rows: termRows, columns: termColumns } = useTerminalSize()
     const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -68,6 +69,7 @@ export function App() {
         const unsub4 = Bus.subscribe(SessionProcessor.UsageUpdate, (p) => {
             if (p.sessionId !== sessionId) return
             setTotalTokens(prev => ({ input: prev.input + p.input, output: prev.output + p.output }))
+            setLatestInput(p.input)
         })
         return () => {
             unsub1(); unsub2(); unsub3(); unsub4()
@@ -191,7 +193,7 @@ export function App() {
                     onRespond={handlePermission}
                 />
             )}
-            <StatusBar status={status} model={model} tokens={totalTokens} />
+            <StatusBar status={status} model={model} tokens={totalTokens} latestInput={latestInput} />
             <Input onSubmit={handleSubmit} disabled={status !== "idle"} />
         </Box>
     )
